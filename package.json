@@ -1,0 +1,31 @@
+{
+  "name": "app-horarios",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "PWA para cargar horas extras y generar la planilla HSX.docx",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "build:template": "python scripts/build-template.py",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "typescript": "^5.6.0",
+    "vite": "^5.4.21",
+    "vite-plugin-pwa": "^0.20.5",
+    "vitest": "^2.1.0"
+  },
+  "dependencies": {
+    "docxtemplater": "^3.70.1",
+    "pizzip": "^3.2.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  }
+}

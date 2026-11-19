@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dev-dist/
+*.local
+*.log
+.DS_Store
+
+# Muestra generada por scripts/gen-agosto.mjs
+/HSX-agosto-generado.docx
+
+# Planillas reales del cliente (datos personales): no se suben
+/privado/
