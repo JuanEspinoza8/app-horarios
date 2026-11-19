@@ -1,5 +1,5 @@
 """
-Genera public/plantilla.docx a partir de privado/HSX-base.docx (la planilla
+Genera assets/plantilla.docx a partir de privado/HSX-base.docx (la planilla
 original del cliente), inyectando los marcadores de docxtemplater:
 
   Encabezado: {nombre} {legajo} {mes} {convenio} {horario}
@@ -7,8 +7,8 @@ original del cliente), inyectando los marcadores de docxtemplater:
               {franco} {via25} {via50} {motivo} {/filas}  (se repite por día)
   Totales   : {tot50} {tot100}
 
-Es un paso de build (una sola vez / cuando cambie la planilla base). El runtime
-de la PWA solo consume el .docx resultante. Uso: python scripts/build-template.py
+Es un paso de build (una sola vez / cuando cambie la planilla base). La app Flutter
+solo consume el .docx resultante (lib/export/planilla_docx.dart). Uso: python scripts/build-template.py
 """
 import copy
 import os
@@ -21,7 +21,7 @@ XML_SPACE = "{http://www.w3.org/XML/1998/namespace}space"
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 BASE = os.path.join(HERE, "..", "privado", "HSX-base.docx")
-OUT = os.path.join(HERE, "..", "public", "plantilla.docx")
+OUT = os.path.join(HERE, "..", "assets", "plantilla.docx")
 
 
 def register_all_namespaces(xml_bytes: bytes):

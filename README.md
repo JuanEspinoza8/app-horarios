@@ -1,61 +1,94 @@
-# Horas Extras (PWA)
+# Horas Extras (Flutter / Android)
 
-App móvil (PWA instalable, offline) para cargar horas de entrada/salida día a día,
-calcular automáticamente las **horas extras al 50% / 100%** y los **francos**, cargar
-los **viáticos** más tarde, y **exportar la planilla HSX en Word** (`.docx`) idéntica
-a la del convenio **CCT 36/75 FATyF**.
+App Android para cargar entrada y salida día a día, calcular las **horas extras al 50% / 100%**
+y los **francos**, y exportar la **planilla HSX en Word** (`.docx`) igual a la del convenio
+**CCT 36/75 FATyF**. Funciona sin internet; los datos quedan en el teléfono.
 
-## Cómo funciona el cálculo
+Tiene **modo oscuro con fondo negro puro** (#000000) para pantallas OLED: en Ajustes →
+Apariencia se elige *Auto* (sigue al teléfono), *Claro* u *Oscuro*. La pantalla de arranque
+también respeta esa elección (Android 12+, vía `MainActivity.kt`).
 
-Reglas reconstruidas de la planilla real y **validadas contra agosto 2026** (los
-totales dan 30:56 al 50% y 26:44 al 100%, iguales al Word original):
+## Reglas de cálculo
 
-- **Horario normal** (config.): Lun–Vie 08:00–16:00. Solo cuenta como extra el tiempo
-  trabajado **fuera** de esa franja; salir antes no descuenta.
-- **Día hábil:** extra diurna → **50%**; extra en franja **nocturna** (21:00–06:00) → **100%**.
-- **Sábado / domingo / feriado:** todo lo trabajado → **100%**.
-- **Domingo / feriado:** se **sugiere franco** (editable; lo decide el usuario).
-- **Viáticos** (25% / 50%) y **motivo:** manuales.
+| | Lunes a viernes | Sáb, dom y feriados |
+|---|---|---|
+| Horario normal | **Ene–Feb:** 07:00–15:00 · **Mar–Dic:** 08:00–16:00 (no es extra) | — |
+| Fuera del horario, de 21:00 a 06:00 | **100%** | **100%** |
+| Fuera del horario, resto (p. ej. 16–21, 06–08) | **50%** | **100%** |
 
-Todo es configurable desde **Ajustes** (horario normal, franja nocturna, datos del empleado).
+- Salir antes no descuenta.
+- Si el turno cruza la medianoche, lo que cae al día siguiente se evalúa con el tipo y el
+  horario de ese día (viernes 22:00 → sábado 08:00: lo del sábado va todo al 100%).
+- **Franco** (Auto / Sí / No): en *Auto* se marca solo si es sábado o domingo con **4:00 h o
+  más** trabajadas, o feriado con **8:00 h o más**. Se puede forzar a Sí o No por día.
+- **Feriados**: la app marca sola los feriados nacionales de `lib/domain/feriados.dart`
+  (2026 completo; 2027 solo inamovibles hasta que salga el decreto de traslados). Los
+  provinciales o puentes se marcan a mano con la casilla "Feriado".
+- **Viáticos**: no se cargan; esas columnas del Word quedan vacías para completarlas a mano.
+
+Todo es editable en **Ajustes** (horarios, meses de verano, franja nocturna, umbrales del franco).
+Las reglas se validan contra la planilla real de agosto 2026 (30:56 al 50%, 26:44 al 100%).
 
 ## Estructura
 
-    src/lib/time.ts       Utilidades de tiempo (HH:MM <-> minutos)
-    src/lib/overtime.ts   Motor de reglas (50/100/franco). Núcleo, con tests.
-    src/lib/format.ts     Formato de fecha/mes (sin dependencias pesadas)
-    src/lib/docx.ts       Rellena la plantilla con docxtemplater
-    src/lib/export.ts     Descarga el .docx del mes (carga diferida)
-    src/lib/store.ts      Persistencia offline (localStorage)
-    src/components/       DiaForm (carga de día) y Ajustes
-    src/App.tsx           Pantalla principal (mes, lista, totales, exportar)
-    public/plantilla.docx Plantilla docxtemplater (generada, ver abajo)
-    scripts/              Plantilla base del cliente + generadores
+    lib/domain/time.dart          Utilidades de tiempo (HH:MM <-> minutos)
+    lib/domain/overtime.dart      Motor de reglas (50/100/franco), con tests
+    lib/domain/feriados.dart      Feriados nacionales que se marcan solos
+    lib/domain/fechas.dart        Formato de fechas en español
+    lib/data/models.dart          Día, Empleado, FrancoModo
+    lib/data/store.dart           Estado + guardado local (SharedPreferences)
+    lib/export/planilla_docx.dart Rellena assets/plantilla.docx (archive + xml)
+    lib/export/exportar.dart      Compartir / guardar el .docx en Android
+    lib/ui/                       Pantallas Mes, Día y Ajustes
+    lib/ui/tema.dart              Tema claro y oscuro (negro puro OLED)
+    lib/data/modo_noche.dart      Avisa a Android el tema para la pantalla de arranque
+    assets/plantilla.docx         Plantilla Word (generada, ver abajo)
+    scripts/                      Planilla base del cliente + generadores
+    test/                         Motor, export del Word e interfaz
 
 ## Desarrollo
 
-    npm install
-    npm run dev       # servidor de desarrollo
-    npm test          # tests del motor y del export (valida agosto)
-    npm run build     # build de producción (genera el service worker PWA)
-    npm run preview   # sirve el build
+    flutter pub get
+    flutter test                  # motor, Word de agosto e interfaz
+    flutter analyze
+    flutter run                   # en un emulador o teléfono conectado
 
-## La plantilla Word
+## Generar el APK
 
-`public/plantilla.docx` se genera a partir de `privado/HSX-base.docx` (copia de la
-planilla original del cliente), insertando los marcadores de docxtemplater:
+    flutter build apk --release                  # universal (~54 MB, cualquier teléfono)
+    flutter build apk --release --split-per-abi  # por arquitectura (arm64 ~19 MB)
 
-    npm run build:template     # python scripts/build-template.py
+Salida en `build/app/outputs/flutter-apk/`. Para la mayoría de los teléfonos actuales alcanza
+con `app-arm64-v8a-release.apk`; ante la duda, mandar `app-release.apk` (universal). Para
+instalarlo, el teléfono tiene que permitir "instalar apps desconocidas" para la app desde la
+que se abre (WhatsApp, Drive, Archivos…).
 
-Marcadores: encabezado `{nombre} {legajo} {mes} {convenio} {horario}`; detalle, una
-fila que se repite `{#filas} {fecha} {entrada} {salida} {al50} {al100} {franco}
-{via25} {via50} {motivo} {/filas}`; totales `{tot50} {tot100}`.
+Para una versión nueva, subir `version:` en `pubspec.yaml` (p. ej. `1.0.1+2`) antes de compilar.
 
-Para regenerar el Word de muestra de agosto: `node scripts/gen-agosto.mjs`.
+### Clave de firma (¡hacer copia de seguridad!)
 
-## Despliegue
+El APK de release se firma con `android/keys/horas-extras.jks` usando los datos de
+`android/key.properties`. **Ninguno de los dos está en git.** Guardar copia de ambos en un lugar
+seguro: una actualización firmada con otra clave no se puede instalar encima de la anterior
+y obliga a desinstalar la app, **lo que borra todos los días cargados**.
 
-Es una PWA estática: `npm run build` y servir `dist/` en cualquier hosting **HTTPS**
-(Netlify, Vercel, GitHub Pages). Se instala desde el navegador ("Agregar a pantalla de
-inicio") y funciona offline. Si se publica en un subpath, configurar `base` en
-`vite.config.ts`.
+## Plantilla Word
+
+`assets/plantilla.docx` se genera a partir de `privado/HSX-base.docx` (copia de la planilla
+original del cliente) insertando marcadores:
+
+    python scripts/build-template.py
+
+Encabezado `{nombre} {legajo} {mes} {convenio} {horario}`; una fila que se repite por día
+`{#filas}{fecha} {entrada} {salida} {al50} {al100} {franco} {via25} {via50} {motivo}{/filas}`;
+totales `{tot50} {tot100}`.
+
+## Ícono
+
+    python scripts/gen-icon.py && dart run flutter_launcher_icons
+
+## Notas
+
+- `path_provider_android` está fijado en 2.2.23: la 2.3.x (con JNI) falla en el APK de
+  release al compartir (`ClassNotFoundException`). Revisar antes de subirlo.
+- La versión web anterior (PWA con React) quedó en el primer commit del repo.
