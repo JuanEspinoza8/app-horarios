@@ -50,7 +50,10 @@
           const cache = await caches.open('horas-extras-v1'); // mismo nombre que en sw.js
           const urls = performance.getEntriesByType('resource')
             .map((e) => e.name.split('#')[0])
-            .filter((u) => u.startsWith(location.origin) && !u.endsWith('/sw.js'));
+            .filter((u) =>
+              (u.startsWith(location.origin) && !u.endsWith('/sw.js')) ||
+              // Fuente Roboto que el motor de Flutter pide a Google.
+              u.startsWith('https://fonts.gstatic.com/'));
           for (const u of new Set(urls)) {
             if (!(await cache.match(u))) await cache.add(u).catch(() => {});
           }
