@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <!--
+    $FLUTTER_BASE_HREF se reemplaza con el valor de --base-href de `flutter build web`
+    (en GitHub Pages: /app-horarios/).
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Carga de horas, cálculo de horas extras al 50% y 100% y planilla HSX en Word.">
+
+  <!-- Color de la barra del navegador, según el modo claro u oscuro del teléfono -->
+  <meta name="theme-color" content="#F9F9FF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+
+  <!-- iPhone: "Agregar a pantalla de inicio" la abre como app, a pantalla completa -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Horas Extras">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>Horas Extras</title>
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* Fondo mientras carga: evita el destello blanco en modo oscuro (OLED). */
+    html, body { margin: 0; height: 100%; background: #F9F9FF; }
+    @media (prefers-color-scheme: dark) { html, body { background: #000000; } }
+  </style>
+</head>
+<body>
+  <script>
+    // Para usar la app sin conexión (ver sw.js).
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+
+      // En la primera visita el motor gráfico y las fuentes se descargan antes de
+      // que el service worker esté activo: cuando se dibuja el primer cuadro, se
+      // guardan en la caché (salen de la caché del navegador, sin volver a bajarlos)
+      // para que la app ya abra sin conexión desde la segunda vez que se abre.
+      window.addEventListener('flutter-first-frame', async () => {
+        try {
+          await navigator.serviceWorker.ready;
+          const cache = await caches.open('horas-extras-v1'); // mismo nombre que en sw.js
+          const urls = performance.getEntriesByType('resource')
+            .map((e) => e.name.split('#')[0])
+            .filter((u) => u.startsWith(location.origin) && !u.endsWith('/sw.js'));
+          for (const u of new Set(urls)) {
+            if (!(await cache.match(u))) await cache.add(u).catch(() => {});
+          }
+        } catch (e) {}
+      }, { once: true });
+    }
+  </script>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

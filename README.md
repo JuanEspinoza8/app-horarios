@@ -1,8 +1,14 @@
-# Horas Extras (Flutter / Android)
+# Horas Extras (Flutter: Android + web)
 
-App Android para cargar entrada y salida día a día, calcular las **horas extras al 50% / 100%**
+App para cargar entrada y salida día a día, calcular las **horas extras al 50% / 100%**
 y los **francos**, y exportar la **planilla HSX en Word** (`.docx`) igual a la del convenio
 **CCT 36/75 FATyF**. Funciona sin internet; los datos quedan en el teléfono.
+
+- **Android:** APK (ver *Generar el APK*).
+- **iPhone y cualquier navegador:** https://juanespinoza8.github.io/app-horarios/
+  En iPhone: abrir el link en **Safari** → botón **Compartir** → **Agregar a pantalla de inicio**.
+  Queda con ícono propio, se abre a pantalla completa y, después de abrirla una vez, funciona
+  sin conexión.
 
 Tiene **modo oscuro con fondo negro puro** (#000000) para pantallas OLED: en Ajustes →
 Apariencia se elige *Auto* (sigue al teléfono), *Claro* u *Oscuro*. La pantalla de arranque
@@ -38,12 +44,16 @@ Las reglas se validan contra la planilla real de agosto 2026 (30:56 al 50%, 26:4
     lib/data/models.dart          Día, Empleado, FrancoModo
     lib/data/store.dart           Estado + guardado local (SharedPreferences)
     lib/export/planilla_docx.dart Rellena assets/plantilla.docx (archive + xml)
-    lib/export/exportar.dart      Compartir / guardar el .docx en Android
+    lib/export/exportar.dart      Genera el .docx del mes
+    lib/export/salida_io.dart     Compartir / guardar en Android (APK)
+    lib/export/salida_web.dart    Compartir / descargar en la web (iPhone)
     lib/ui/                       Pantallas Mes, Día y Ajustes
     lib/ui/tema.dart              Tema claro y oscuro (negro puro OLED)
     lib/data/modo_noche.dart      Avisa a Android el tema para la pantalla de arranque
     assets/plantilla.docx         Plantilla Word (generada, ver abajo)
-    scripts/                      Planilla base del cliente + generadores
+    web/                          Versión web: index.html, manifest, íconos y sw.js (sin conexión)
+    scripts/                      Generadores (plantilla Word e íconos)
+    privado/                      Planillas reales del cliente (NO se suben a git)
     test/                         Motor, export del Word e interfaz
 
 ## Desarrollo
@@ -72,10 +82,27 @@ El APK de release se firma con `android/keys/horas-extras.jks` usando los datos 
 seguro: una actualización firmada con otra clave no se puede instalar encima de la anterior
 y obliga a desinstalar la app, **lo que borra todos los días cargados**.
 
+## Versión web (GitHub Pages)
+
+Se publica sola con cada push a `main` (`.github/workflows/pages.yml`: corre los tests,
+compila y publica). Para probarla en local:
+
+    flutter build web --release --base-href /app-horarios/ --no-web-resources-cdn
+
+- **Datos:** quedan en el navegador de cada teléfono (no se suben a ningún lado). En iPhone,
+  conviene usarla desde la pantalla de inicio: si se usa como página de Safari y pasan más
+  de 7 días sin abrirla, iOS puede borrar lo cargado.
+- **Sin conexión:** `web/sw.js` (service worker propio; el que genera Flutter 3.44 ya no
+  guarda nada). Una versión nueva publicada se ve en la apertura siguiente.
+- **Exportar:** *Compartir* abre el menú del sistema (WhatsApp, Mail, Guardar en Archivos…);
+  *Descargar* lo deja en Descargas (en iPhone, app Archivos).
+- Lo propio de cada plataforma está separado (`salida_io.dart` / `salida_web.dart`, carpeta
+  `web/`), así los cambios de la web no tocan el APK.
+
 ## Plantilla Word
 
 `assets/plantilla.docx` se genera a partir de `privado/HSX-base.docx` (copia de la planilla
-original del cliente) insertando marcadores:
+original del cliente, que no se sube al repo) insertando marcadores:
 
     python scripts/build-template.py
 
@@ -85,7 +112,8 @@ totales `{tot50} {tot100}`.
 
 ## Ícono
 
-    python scripts/gen-icon.py && dart run flutter_launcher_icons
+    python scripts/gen-icon.py && dart run flutter_launcher_icons   # Android + web
+    python scripts/gen-icon.py web                                  # solo web
 
 ## Notas
 

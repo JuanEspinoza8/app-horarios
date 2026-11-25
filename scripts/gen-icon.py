@@ -4,7 +4,8 @@ Genera el ícono de la app (assets/icon/): un reloj blanco sobre azul.
   icon.png      1024x1024, ícono completo (Android viejo / legacy)
   icon_fg.png   1024x1024, solo el reloj con fondo transparente (adaptive icon)
 
-Después: dart run flutter_launcher_icons
+Después (Android): dart run flutter_launcher_icons
+Solo web: python scripts/gen-icon.py web
 Uso: python scripts/gen-icon.py
 """
 import math
@@ -58,5 +59,38 @@ def main():
     print("OK ->", os.path.relpath(OUT, os.path.join(HERE, "..")))
 
 
+def web():
+    """Íconos de la versión web (web/): no toca los de Android."""
+    dst = os.path.join(HERE, "..", "web")
+    os.makedirs(os.path.join(dst, "icons"), exist_ok=True)
+
+    redondeado = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    d = ImageDraw.Draw(redondeado)
+    d.rounded_rectangle([0, 0, S - 1, S - 1], radius=int(S * 0.22), fill=AZUL)
+    reloj(d, S / 2, S / 2, S * 0.33)
+
+    # Fondo completo sin transparencia: iOS recorta las esquinas solo y las
+    # zonas transparentes quedarían negras. Maskable: dibujo dentro del 80% central.
+    def lleno(radio):
+        im = Image.new("RGBA", (S, S), AZUL)
+        reloj(ImageDraw.Draw(im), S / 2, S / 2, S * radio)
+        return im.convert("RGB")
+
+    maskable, apple = lleno(0.26), lleno(0.30)
+    redondeado.resize((192, 192), Image.LANCZOS).save(os.path.join(dst, "icons", "Icon-192.png"))
+    redondeado.resize((512, 512), Image.LANCZOS).save(os.path.join(dst, "icons", "Icon-512.png"))
+    maskable.resize((192, 192), Image.LANCZOS).save(os.path.join(dst, "icons", "Icon-maskable-192.png"))
+    maskable.resize((512, 512), Image.LANCZOS).save(os.path.join(dst, "icons", "Icon-maskable-512.png"))
+    apple.resize((180, 180), Image.LANCZOS).save(os.path.join(dst, "icons", "apple-touch-icon.png"))
+    redondeado.resize((32, 32), Image.LANCZOS).save(os.path.join(dst, "favicon.png"))
+    print("OK -> web/icons, web/favicon.png")
+
+
 if __name__ == "__main__":
-    main()
+    import sys
+
+    if sys.argv[1:] == ["web"]:
+        web()  # python scripts/gen-icon.py web
+    else:
+        main()
+        web()

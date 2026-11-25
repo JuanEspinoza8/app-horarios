@@ -61,6 +61,10 @@ class _MesScreenState extends State<MesScreen> {
   }
 
   Future<void> _exportar(List<Dia> dias) async {
+    // En la web el Word se genera mientras se elige la opción: Safari (iPhone)
+    // solo abre el menú de compartir si se llama enseguida después del toque.
+    // En Android (esWeb == false) el flujo es el de siempre.
+    final previa = esWeb ? generarPlanilla(store.empleado, dias, _anio, _mes, store.config) : null;
     final accion = await showModalBottomSheet<_Accion>(
       context: context,
       showDragHandle: true,
@@ -87,8 +91,12 @@ class _MesScreenState extends State<MesScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.save_alt),
-              title: const Text('Guardar en el teléfono'),
-              subtitle: const Text('Elegís la carpeta, por ejemplo Descargas'),
+              title: const Text(esWeb ? 'Descargar' : 'Guardar en el teléfono'),
+              subtitle: const Text(
+                esWeb
+                    ? 'Queda en Descargas (en iPhone, en la app Archivos)'
+                    : 'Elegís la carpeta, por ejemplo Descargas',
+              ),
               onTap: () => Navigator.pop(ctx, _Accion.guardar),
             ),
             const SizedBox(height: 8),
@@ -96,16 +104,19 @@ class _MesScreenState extends State<MesScreen> {
         ),
       ),
     );
-    if (accion == null || !mounted) return;
+    if (accion == null || !mounted) {
+      previa?.ignore();
+      return;
+    }
 
     setState(() => _exportando = true);
     try {
-      final planilla = await generarPlanilla(store.empleado, dias, _anio, _mes, store.config);
+      final planilla = await (previa ?? generarPlanilla(store.empleado, dias, _anio, _mes, store.config));
       switch (accion) {
         case _Accion.compartir:
           await compartirPlanilla(planilla);
         case _Accion.guardar:
-          if (await guardarPlanilla(planilla)) _aviso('Guardada: ${planilla.nombre}');
+          if (await guardarPlanilla(planilla)) _aviso('${esWeb ? 'Descargada' : 'Guardada'}: ${planilla.nombre}');
       }
     } catch (e, st) {
       debugPrint('Error al exportar: $e\n$st');
